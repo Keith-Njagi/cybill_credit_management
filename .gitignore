@@ -1,0 +1,15 @@
+/__pycache__
+/app/__pycache__
+/app/configurations/__pycache__
+/app/models/__pycache__
+/app/resources/__pycache__
+/app/user_functions/__pycache__
+
+/test/__pycache__
+/test/resources/__pycache__
+/test/user_functions/__pycache__
+
+/venv
+env
+config.env
+TODO.txt
