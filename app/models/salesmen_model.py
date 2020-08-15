@@ -45,7 +45,7 @@ class Salesman(db.Model):
         return True
 
     @classmethod
-    def update_sales_man(cls, id, limit=None):
+    def update_salesman(cls, id, limit=None):
         record = cls.fetch_by_id(id)
         if limit:
             record.limit = limit

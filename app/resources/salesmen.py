@@ -85,7 +85,6 @@ class SalesmanList(Resource):
             db_salesman = Salesman.fetch_by_user_id(user_id)
             my_salesman = salesman_schema.dump(db_salesman)
             if len(my_salesman) != 0:
-                print('My db salesman: ', my_salesman)
                 return {'message': 'This user has already been registered as a salesman'}, 400
             new_salesman = Salesman(user_id=user_id, limit=limit)
             new_salesman.insert_record()
@@ -102,8 +101,6 @@ class SalesmanList(Resource):
             print('Error description: ', e)
             print('========================================')
             return {'message': 'Couldn\'t add new salesman'}, 400
-        
-
 
 # - '/salesman/<int:id>'
 # get one salesman - Admin, Sales Man(user_id) 
@@ -116,21 +113,121 @@ class SalesmanOperations(Resource):
     @api.doc('get_salesman')
     def get(self, id):
         '''Get one Salesman'''
-        pass
+        authorised_user = get_jwt_identity()
+        claims = get_jwt_claims()
 
+        db_salesman = Salesman.fetch_by_id(id)
+        salesman = salesman_schema.dump(db_salesman)
+        if len(salesman) != 0:
+            if authorised_user['id'] == salesman['user_id'] or claims['is_admin']:
+                
+
+                # Record this event in user's logs
+                log_method = 'get'
+                log_description = 'Fetched salesman <' + str(id) + '>' 
+                authorization = request.headers.get('Authorization')
+                auth_token  = { "Authorization": authorization}
+                record_user_log(auth_token, log_method, log_description)
+
+                return {'salesman': salesman}, 200
+            return {'message':'You are not authorised to view this salesman!'}, 403
+        return {'message': 'There is no such record!'}, 404
+        
     @jwt_required
     @api.doc('edit_credit_limits')
     @api.expect(edit_salesman_model)
     def put(self, id):
         '''Edit Credit limits'''
-        pass
+        claims = get_jwt_claims()
+        if not claims['is_admin']:
+            return {'message': 'You are not authorised to edit this record!'}, 403
+        
+        db_salesman = Salesman.fetch_by_id(id)
+        this_salesman = salesman_schema.dump(db_salesman)
+        if len(this_salesman) == 0:
+            return {'message': 'This salesman does not exist.'}, 404
+        
+        data =api.payload
+        if not data:
+            return {'message':'No input data detected'}, 400
+        try:
+            limit = data['limit']
+            Salesman.update_salesman(id=id, limit=limit)
+            db_salesman = Salesman.fetch_by_id(id)
+            salesman = salesman_schema.dump(db_salesman)
+            
+            # Record this event in user's logs
+            log_method = 'put'
+            log_description = 'Updated salesman <' + str(id) + '>' 
+            authorization = request.headers.get('Authorization')
+            auth_token  = { "Authorization": authorization}
+            record_user_log(auth_token, log_method, log_description)
+
+            return {'salesman': salesman}, 200
+        except Exception as e:
+            print('========================================')
+            print('Error description: ', e)
+            print('========================================')
+            return {'message': 'Couldn\'t update salesman'}, 400
 
 
     @jwt_required
     @api.doc('delete_salesman')
     def delete(self, id):
         '''Delete Salesman'''
-        pass
+        authorised_user = get_jwt_identity()
+        claims = get_jwt_claims()
+        try:
+            db_salesman = Salesman.fetch_by_id(id)
+            salesman = salesman_schema.dump(db_salesman)
+            if len(salesman) != 0:
+                if claims['is_admin']:
+                    Salesman.delete_by_id(id)
+
+                    # Record this event in user's logs
+                    log_method = 'delete'
+                    log_description = 'Deleted salesman <' + str(id) + '>' 
+                    authorization = request.headers.get('Authorization')
+                    auth_token  = { "Authorization": authorization}
+                    record_user_log(auth_token, log_method, log_description)
+
+                    return {'message': 'Successfully deleted salesman'}, 200
+                return {'message':'You are not authorised to delete this salesman!'}, 403
+            return {'message': 'There is no such record!'}, 404
+        except Exception as e:
+            print('========================================')
+            print('Error description: ', e)
+            print('========================================')
+            return {'message': 'Couldn\'t delete salesman'}, 400
+
+@api.route('/user/<int:user_id>')
+@api.param('user_id', 'The user identifier')
+class GetSalesmanUser(Resource):
+    @jwt_required
+    @api.doc('get_salesman_by_ user')
+    def get(self, user_id):
+        '''Get Salesman by User'''
+        authorised_user = get_jwt_identity()
+        claims = get_jwt_claims()
+
+        if authorised_user['id'] == user_id or claims['is_admin']:
+            db_salesman = Salesman.fetch_by_user_id(user_id=user_id)
+            salesman = salesman_schema.dump(db_salesman)
+
+            if len(salesman) == 0:
+                return {'message': 'There is no such salesman'}, 404
+
+            # Record this event in user's logs
+            log_method = 'get'
+            log_description = 'Fetched salesman by user id <' + str(user_id) + '>' 
+            authorization = request.headers.get('Authorization')
+            auth_token  = { "Authorization": authorization}
+            record_user_log(auth_token, log_method, log_description)
+
+            return {'salesman': salesman}, 200
+        return {'message': 'You are not authorised to  view this salesman!'}, 403
+
+        
 
 @api.route('/suspend/<int:id>')
 @api.param('id', 'The salesman identifier')
@@ -139,13 +236,63 @@ class SuspendSalesman(Resource):
     @api.doc('suspend_salesman')
     def put(self, id):
         '''Suspend Salesman'''
-        pass
+        authorised_user = get_jwt_identity()
+        claims = get_jwt_claims()
+        try:
+            db_salesman = Salesman.fetch_by_id(id)
+            salesman = salesman_schema.dump(db_salesman)
+            if len(salesman) != 0:
+                if claims['is_admin']:
 
-@api.route('/suspend/<int:id>')
+                    is_suspended = 1
+                    Salesman.suspend_salesman(id=id, is_suspended=is_suspended)
+
+                    # Record this event in user's logs
+                    log_method = 'put'
+                    log_description = 'Suspended salesman <' + str(id) + '>' 
+                    authorization = request.headers.get('Authorization')
+                    auth_token  = { "Authorization": authorization}
+                    record_user_log(auth_token, log_method, log_description)
+
+                    return {'message': 'Successfully suspended salesman'}, 200
+                return {'message':'You are not authorised to suspend this salesman!'}, 403
+            return {'message': 'There is no such record!'}, 404
+        except Exception as e:
+            print('========================================')
+            print('Error description: ', e)
+            print('========================================')
+            return {'message': 'Couldn\'t delete salesman'}, 400
+
+@api.route('/restore/<int:id>')
 @api.param('id', 'The salesman identifier')
 class RestoreSalesman(Resource):
     @jwt_required
     @api.doc('suspend_salesman')
     def put(self, id):
         '''Restore Salesman'''
-        pass
+        authorised_user = get_jwt_identity()
+        claims = get_jwt_claims()
+        try:
+            db_salesman = Salesman.fetch_by_id(id)
+            salesman = salesman_schema.dump(db_salesman)
+            if len(salesman) != 0:
+                if claims['is_admin']:
+                    
+                    is_suspended = 2
+                    Salesman.suspend_salesman(id=id, is_suspended=is_suspended)
+
+                    # Record this event in user's logs
+                    log_method = 'put'
+                    log_description = 'Restored salesman <' + str(id) + '>' 
+                    authorization = request.headers.get('Authorization')
+                    auth_token  = { "Authorization": authorization}
+                    record_user_log(auth_token, log_method, log_description)
+
+                    return {'message': 'Successfully restored salesman'}, 200
+                return {'message':'You are not authorised to restore this salesman!'}, 403
+            return {'message': 'There is no such record!'}, 404
+        except Exception as e:
+            print('========================================')
+            print('Error description: ', e)
+            print('========================================')
+            return {'message': 'Couldn\'t delete salesman'}, 400
