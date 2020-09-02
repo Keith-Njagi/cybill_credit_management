@@ -6,7 +6,7 @@ from flask import request
 from models.salesmen_model import Salesman, SalesmanSchema
 from user_functions.record_user_log import record_user_log
 
-api = Namespace('salesman',description='Salesman management')
+api = Namespace('salesman',description='Salesman Management')
 
 salesman_model = api.model('Salesman', {
     'user_id': fields.Integer(required=True, description='User Id'),
@@ -122,7 +122,6 @@ class SalesmanOperations(Resource):
             if len(salesman) != 0:
                 if authorised_user['id'] == salesman['user_id'] or claims['is_admin']:
                     
-
                     # Record this event in user's logs
                     log_method = 'get'
                     log_description = 'Fetched salesman <' + str(id) + '>' 
