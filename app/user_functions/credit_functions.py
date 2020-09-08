@@ -11,7 +11,7 @@ def license_existence(auth_token, license_id):
 
     license_key = req.json()
 
-    status = license_key['license']['status']
+    status = license_key['license_status']
     if status == 'on_credit' or status == 'sold':
         return {'message':'This license is not available for crediting. It has either already sold or on credit.'}, 400
     
