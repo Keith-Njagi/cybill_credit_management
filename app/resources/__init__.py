@@ -4,7 +4,7 @@ from flask_jwt_extended import JWTManager
 
 from blacklist import BLACKLIST
 from .salesmen import api as salesmen
-from .credits import api as credits
+from .credit import api as credit
 
 jwt = JWTManager()
 
@@ -21,7 +21,7 @@ blueprint = Blueprint('api', __name__, url_prefix='/api')
 api = Api(blueprint, doc='/documentation', title='Credit management API', version='0.1', description='An API to manage Salesmen', authorizations=authorizations, security='apikey')
 
 api.add_namespace(salesmen)
-api.add_namespace(credits)
+api.add_namespace(credit)
 
 @jwt.user_claims_loader
 # Remember identity is what we define when creating the access token
